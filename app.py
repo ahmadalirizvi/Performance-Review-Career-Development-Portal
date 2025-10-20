@@ -4,6 +4,15 @@ from datetime import datetime
 import uuid
 import socket
 import os
+import uuid
+
+def is_valid_uuid(val):
+    try:
+        uuid.UUID(str(val))
+        return True
+    except ValueError:
+        return False
+
 
 # Read query params (optional)
 params = st.query_params
@@ -63,7 +72,8 @@ def get_assessment_by_id(employee_id):
 
 
 def get_self_assessment(employee_id):
-    if not employee_id:
+    if not is_valid_uuid(employee_id):
+        st.error(f"❌ Employee ID '{employee_id}' is not valid.")
         return None
     try:
         res = (
@@ -74,14 +84,14 @@ def get_self_assessment(employee_id):
         )
         return res.data if hasattr(res, "data") else None
     except Exception as e:
-        st.error(f"Error fetching self assessment: {e}")
+        st.error(f"Error fetching self-assessment: {e}")
         return None
-
 
 def update_self_assessment(employee_id, data):
-    if not employee_id:
-        st.error("employee_id is required for self assessment.")
+    if not is_valid_uuid(employee_id):
+        st.error(f"❌ Employee ID '{employee_id}' is not valid. Cannot submit self-assessment.")
         return None
+
     try:
         existing = (
             supabase.table("employee_self_assessments")
@@ -109,7 +119,8 @@ def update_self_assessment(employee_id, data):
 
 
 def get_performance_assessment(employee_id):
-    if not employee_id:
+    if not is_valid_uuid(employee_id):
+        st.error(f"❌ Employee ID '{employee_id}' is not valid.")
         return None
     try:
         res = (
@@ -125,14 +136,10 @@ def get_performance_assessment(employee_id):
 
 
 def update_performance_assessment(employee_id, data):
-    """
-    Insert or update annual_performance_assessments.
-    Ensures we supply assessment_id (not-null in your DB) by looking up the assessments table.
-    Filters the payload to valid columns for the table.
-    """
-    if not employee_id:
-        st.error("employee_id is required for performance assessment.")
+    if not is_valid_uuid(employee_id):
+        st.error(f"❌ Employee ID '{employee_id}' is not valid. Cannot submit evaluation.")
         return None
+    
     try:
         # find assessments.id for this employee_id (so annual record can reference it)
         assessment_record = (
@@ -201,13 +208,8 @@ def update_performance_assessment(employee_id, data):
 
 
 def get_acknowledgment(employee_id):
-    """
-    Your 'acknowledgments' table (per your schema) contains:
-      employee_id, assessment_id, employee_comments, employee_signature, employee_date
-    We'll fetch rows and treat presence of a row with employee_comments == "Acknowledged"
-    as the user having acknowledged.
-    """
-    if not employee_id:
+    if not is_valid_uuid(employee_id):
+        st.error(f"❌ Employee ID '{employee_id}' is not valid.")
         return None
     try:
         res = (
@@ -223,13 +225,10 @@ def get_acknowledgment(employee_id):
 
 
 def update_acknowledgment(employee_id, data):
-    """
-    Write to acknowledgments table. If your table doesn't have boolean `acknowledged` column,
-    we store the acknowledgment in employee_comments (value "Acknowledged") along with date.
-    """
-    if not employee_id:
-        st.error("employee_id is required for acknowledgment.")
+    if not is_valid_uuid(employee_id):
+        st.error(f"❌ Employee ID '{employee_id}' is not valid. Cannot submit acknowledgment.")
         return None
+    
     try:
         # find assessments.id to include assessment_id if possible
         assessment_record = (
